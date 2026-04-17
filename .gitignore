@@ -1,0 +1,20 @@
+# Backend (Laravel)
+/backend/vendor
+/backend/.env
+/backend/.env.backup
+/backend/storage/*.key
+/backend/storage/logs/*.log
+/backend/public/storage
+
+# Frontend (ReactJS)
+/frontend/node_modules
+/frontend/.env
+/frontend/.env.local
+/frontend/dist
+/frontend/build
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode
+Thumbs.db
