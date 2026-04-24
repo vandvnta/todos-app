@@ -15,12 +15,12 @@ class CategoryController extends Controller
     {
         $categories = Category::withCount('posts')->latest()->get();
 
-        return response()->json($categories);
+        return response()->json(['data' => $categories]);
     }
 
     public function show(Category $category): JsonResponse
     {
-        return response()->json($category->loadCount('posts'));
+        return response()->json(['data' => $category->loadCount('posts')]);
     }
 
     public function store(StoreCategoryRequest $request): JsonResponse
@@ -30,20 +30,23 @@ class CategoryController extends Controller
             'slug' => Str::slug($request->name),
         ]);
 
-        return response()->json($category, 201);
+        return response()->json(['data' => $category], 201);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
-        $data = ['name' => $request->name];
+        $data = [];
 
-        if ($request->has('name')) {
+        if ($request->filled('name')) {
+            $data['name'] = $request->name;
             $data['slug'] = Str::slug($request->name);
         }
 
-        $category->update($data);
+        if (!empty($data)) {
+            $category->update($data);
+        }
 
-        return response()->json($category->fresh());
+        return response()->json(['data' => $category->fresh()]);
     }
 
     public function destroy(Category $category): JsonResponse

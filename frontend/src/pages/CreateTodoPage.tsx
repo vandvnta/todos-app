@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import TodoForm from '../components/TodoForm';
+import { useToast } from '../context/ToastContext';
 import type { Todo, TodoFormData } from '../types';
 
 export default function CreateTodoPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   async function handleSubmit(data: TodoFormData) {
     const formData = new FormData();
@@ -13,11 +15,15 @@ export default function CreateTodoPage() {
     formData.append('status', data.status);
     if (data.image) formData.append('image', data.image);
 
-    await api.post<Todo>('/todos', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    navigate('/todos');
+    try {
+      await api.post<Todo>('/todos', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      showToast('Todo created successfully.');
+      navigate('/todos');
+    } catch {
+      showToast('Failed to create todo.', 'error');
+    }
   }
 
   return (

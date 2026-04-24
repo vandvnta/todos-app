@@ -24,6 +24,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useToast } from '../../context/ToastContext';
 import type { Category, Post } from '../../types';
 
 const EDITOR_CONFIG = {
@@ -63,6 +64,7 @@ export default function PostFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle]               = useState('');
@@ -80,15 +82,15 @@ export default function PostFormPage() {
   // Load categories + post (if edit)
   useEffect(() => {
     const load = async () => {
-      const { data: cats } = await adminApi.get<Category[]>('/admin/categories');
-      setCategories(cats);
+      const { data: catsRes } = await adminApi.get<{ data: Category[] }>('/admin/categories');
+      setCategories(catsRes.data);
 
       if (isEdit) {
-        const { data: post } = await adminApi.get<Post>(`/admin/posts/${id}`);
-        setTitle(post.title);
-        setSelectedCategoryIds(post.categories.map((c) => c.id));
-        setContent(post.content);
-        setPreview(post.image_url);
+        const { data: postRes } = await adminApi.get<{ data: Post }>(`/admin/posts/${id}`);
+        setTitle(postRes.data.title);
+        setSelectedCategoryIds(postRes.data.categories.map((c) => c.id));
+        setContent(postRes.data.content);
+        setPreview(postRes.data.image_url);
       }
     };
 
@@ -101,10 +103,14 @@ export default function PostFormPage() {
     const file = e.target.files?.[0] ?? null;
     setImage(file);
     setRemoveImage(false);
-    if (file) setPreview(URL.createObjectURL(file));
+    if (file) {
+      if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+      setPreview(URL.createObjectURL(file));
+    }
   }
 
   function handleRemoveImage() {
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
     setImage(null);
     setPreview(null);
     setRemoveImage(true);
@@ -127,6 +133,7 @@ export default function PostFormPage() {
 
       const url = isEdit ? `/admin/posts/${id}` : '/admin/posts';
       await adminApi.post(url, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showToast(isEdit ? 'Post updated successfully.' : 'Post created successfully.');
       navigate('/admin/posts');
     } catch (err: unknown) {
       const response = (err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response;

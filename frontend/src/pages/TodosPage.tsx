@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import TodoCard from '../components/TodoCard';
+import ToastBanner from '../components/ToastBanner';
+import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
-import type { Todo, TodoStatus } from '../types';
+import { useToast } from '../context/ToastContext';
+import type { PaginatedResponse, Todo, TodoStatus } from '../types';
 
 type Filter = 'all' | TodoStatus;
 
@@ -17,27 +20,57 @@ const FILTER_OPTIONS: { value: Filter; label: string }[] = [
 export default function TodosPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
-  const [todos, setTodos]     = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter]   = useState<Filter>('all');
+  const [todos, setTodos]             = useState<Todo[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [filter, setFilter]           = useState<Filter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage]       = useState(1);
+  const [total, setTotal]             = useState(0);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
-  const fetchTodos = useCallback(async () => {
-    const { data } = await api.get<Todo[]>('/todos');
-    setTodos(data);
+  const fetchTodos = useCallback(async (page: number, status: Filter) => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = { page };
+      if (status !== 'all') params.status = status;
+
+      const { data } = await api.get<PaginatedResponse<Todo>>('/todos', { params });
+      setTodos(data.data);
+      setCurrentPage(data.current_page);
+      setLastPage(data.last_page);
+      setTotal(data.total);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchTodos().finally(() => setLoading(false));
-  }, [fetchTodos]);
+    fetchTodos(1, filter);
+  }, [fetchTodos, filter]);
 
-  async function handleDelete(id: number) {
-    if (!confirm('Delete this todo?')) return;
-    await api.delete(`/todos/${id}`);
-    setTodos((prev) => prev.filter((t) => t.id !== id));
+  function handleFilterChange(value: Filter) {
+    setFilter(value);
+    setCurrentPage(1);
   }
 
-  const filtered = filter === 'all' ? todos : todos.filter((t) => t.status === filter);
+  function handleDelete(id: number) {
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    try {
+      await api.delete(`/todos/${pendingDeleteId}`);
+      showToast('Todo deleted successfully.');
+      fetchTodos(currentPage, filter);
+    } catch {
+      showToast('Failed to delete todo.', 'error');
+    } finally {
+      setPendingDeleteId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,7 +114,7 @@ export default function TodosPage() {
             {FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setFilter(opt.value)}
+                onClick={() => handleFilterChange(opt.value)}
                 className={`rounded-md px-3 py-1 text-sm font-medium transition ${
                   filter === opt.value
                     ? 'bg-white text-blue-600 shadow-sm'
@@ -101,18 +134,25 @@ export default function TodosPage() {
           </button>
         </div>
 
+        <ToastBanner />
+
+        {/* Total count */}
+        {!loading && (
+          <p className="mb-3 text-sm text-gray-400">{total} todo{total !== 1 ? 's' : ''}</p>
+        )}
+
         {/* List */}
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : todos.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             {filter === 'all' ? 'No todos yet. Create one!' : `No ${filter.replace('_', ' ')} todos.`}
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((todo) => (
+            {todos.map((todo) => (
               <TodoCard
                 key={todo.id}
                 todo={todo}
@@ -122,7 +162,35 @@ export default function TodosPage() {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {lastPage > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              onClick={() => fetchTodos(currentPage - 1, filter)}
+              disabled={currentPage === 1 || loading}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500">Page {currentPage} of {lastPage}</span>
+            <button
+              onClick={() => fetchTodos(currentPage + 1, filter)}
+              disabled={currentPage === lastPage || loading}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </main>
+      <ConfirmModal
+        isOpen={!!pendingDeleteId}
+        title="Delete Todo"
+        message="Delete this todo? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

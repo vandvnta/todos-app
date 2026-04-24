@@ -2,20 +2,25 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useToast } from '../../context/ToastContext';
+import ToastBanner from '../../components/ToastBanner';
+import ConfirmModal from '../../components/ConfirmModal';
 import type { Category } from '../../types';
 
 export default function CategoriesPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading]       = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Category | null>(null);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminApi.get<Category[]>('/admin/categories');
-      setCategories(data);
+      const { data } = await adminApi.get<{ data: Category[] }>('/admin/categories');
+      setCategories(data.data);
     } finally {
       setLoading(false);
     }
@@ -23,11 +28,17 @@ export default function CategoriesPage() {
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  async function handleDelete(category: Category) {
-    if (!confirm(`Delete category "${category.name}"?`)) return;
-    setDeletingId(category.id);
+  function handleDelete(category: Category) {
+    setPendingDelete(category);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     try {
-      await adminApi.delete(`/admin/categories/${category.id}`);
+      await adminApi.delete(`/admin/categories/${pendingDelete.id}`);
+      showToast('Category deleted successfully.');
+      setPendingDelete(null);
       await fetchCategories();
     } catch (err: unknown) {
       const message =
@@ -50,6 +61,8 @@ export default function CategoriesPage() {
           + New Category
         </button>
       </div>
+
+      <ToastBanner />
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
         {loading ? (
@@ -105,6 +118,14 @@ export default function CategoriesPage() {
           </table>
         )}
       </div>
+      <ConfirmModal
+        isOpen={!!pendingDelete}
+        title="Delete Category"
+        message={`Delete category "${pendingDelete?.name}"? This action cannot be undone.`}
+        isLoading={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </AdminLayout>
   );
 }

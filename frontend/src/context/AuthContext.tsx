@@ -27,8 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Restore session from stored access token on mount
   useEffect(() => {
     if (token) {
-      api.get('/me', { _skipRedirect: true } as never)
-        .then(({ data }) => setUser(data))
+      api.get<{ data: User }>('/me', { _skipRedirect: true } as never)
+        .then(({ data }) => setUser(data.data))
         .catch(() => clearSession())
         .finally(() => setIsLoading(false));
     } else {

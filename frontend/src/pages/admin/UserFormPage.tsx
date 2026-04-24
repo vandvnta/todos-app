@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useToast } from '../../context/ToastContext';
 import type { User, UserRole } from '../../types';
 
 interface FormState {
@@ -24,6 +25,7 @@ export default function UserFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [form, setForm]         = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors]     = useState<Partial<Record<keyof FormState, string>>>({});
@@ -69,6 +71,7 @@ export default function UserFormPage() {
       } else {
         await adminApi.post('/admin/users', form);
       }
+      showToast(isEdit ? 'User updated successfully.' : 'User created successfully.');
       navigate('/admin/users');
     } catch (err: unknown) {
       const response = (err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response;

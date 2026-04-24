@@ -25,8 +25,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (token) {
-      adminApi.get('/me')
-        .then(({ data }) => setAdmin(data))
+      adminApi.get<{ data: User }>('/me')
+        .then(({ data }) => setAdmin(data.data))
         .catch(() => clearSession())
         .finally(() => setIsLoading(false));
     } else {

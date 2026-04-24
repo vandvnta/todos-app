@@ -73,13 +73,17 @@ class AuthController extends Controller
         }
 
         /** @var User $user */
-        $user        = JWTAuth::setToken($refreshTokenStr)->toUser();
-        $accessToken = JWTAuth::claims(['token_type' => 'access'])->fromUser($user);
+        $user = JWTAuth::setToken($refreshTokenStr)->toUser();
+
+        JWTAuth::setToken($refreshTokenStr)->invalidate(true);
+
+        [$accessToken, $refreshToken] = $this->issueTokenPair($user);
 
         return response()->json([
-            'access_token' => $accessToken,
-            'token_type'   => 'bearer',
-            'expires_in'   => auth('api')->factory()->getTTL() * 60,
+            'access_token'  => $accessToken,
+            'refresh_token' => $refreshToken,
+            'token_type'    => 'bearer',
+            'expires_in'    => auth('api')->factory()->getTTL() * 60,
         ]);
     }
 
@@ -106,7 +110,7 @@ class AuthController extends Controller
 
     public function me(): JsonResponse
     {
-        return response()->json(auth('api')->user());
+        return response()->json(['data' => auth('api')->user()]);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ class UpdatePostRequest extends FormRequest
             'title'          => ['sometimes', 'required', 'string', 'max:255'],
             'category_ids'   => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
-            'content'        => ['sometimes', 'required', 'string'],
+            'content'        => ['sometimes', 'required', 'string', 'max:100000'],
             'image'          => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_image'   => ['nullable', 'boolean'],
         ];

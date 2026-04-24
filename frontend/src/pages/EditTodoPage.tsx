@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import TodoForm from '../components/TodoForm';
+import { useToast } from '../context/ToastContext';
 import type { Todo, TodoFormData } from '../types';
 
 export default function EditTodoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [todo, setTodo]       = useState<Todo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    api.get<Todo>(`/todos/${id}`)
-      .then(({ data }) => setTodo(data))
+    api.get<{ data: Todo }>(`/todos/${id}`)
+      .then(({ data }) => setTodo(data.data))
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
@@ -32,11 +34,15 @@ export default function EditTodoPage() {
       formData.append('remove_image', '1');
     }
 
-    await api.post<Todo>(`/todos/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    navigate('/todos');
+    try {
+      await api.post<Todo>(`/todos/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      showToast('Todo updated successfully.');
+      navigate('/todos');
+    } catch {
+      showToast('Failed to update todo.', 'error');
+    }
   }
 
   return (

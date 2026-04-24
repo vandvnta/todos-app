@@ -10,9 +10,9 @@ use App\Http\Controllers\TodoController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public routes ──────────────────────────────────────────────────────────
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login']);
-Route::post('/refresh',  [AuthController::class, 'refresh']);
+Route::middleware('throttle:10,1')->post('/register', [AuthController::class, 'register']);
+Route::middleware('throttle:5,1')->post('/login',     [AuthController::class, 'login']);
+Route::middleware('throttle:10,1')->post('/refresh',  [AuthController::class, 'refresh']);
 
 Route::get('/posts',        [PostController::class, 'index']);
 Route::get('/posts/{post}', [PostController::class, 'show']);

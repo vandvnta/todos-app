@@ -2,10 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useToast } from '../../context/ToastContext';
+import ToastBanner from '../../components/ToastBanner';
+import ConfirmModal from '../../components/ConfirmModal';
 import type { PaginatedResponse, Post } from '../../types';
 
 export default function PostsPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [posts, setPosts]             = useState<Post[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -13,6 +17,7 @@ export default function PostsPage() {
   const [lastPage, setLastPage]       = useState(1);
   const [total, setTotal]             = useState(0);
   const [deletingId, setDeletingId]   = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Post | null>(null);
 
   const fetchPosts = useCallback(async (page: number) => {
     setLoading(true);
@@ -29,14 +34,23 @@ export default function PostsPage() {
 
   useEffect(() => { fetchPosts(1); }, [fetchPosts]);
 
-  async function handleDelete(post: Post) {
-    if (!confirm(`Delete post "${post.title}"?`)) return;
-    setDeletingId(post.id);
+  function handleDelete(post: Post) {
+    setPendingDelete(post);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     try {
-      await adminApi.delete(`/admin/posts/${post.id}`);
+      await adminApi.delete(`/admin/posts/${pendingDelete.id}`);
+      showToast('Post deleted successfully.');
+      setPendingDelete(null);
       await fetchPosts(currentPage);
-    } catch {
-      alert('Failed to delete post.');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? 'Failed to delete post.';
+      alert(message);
     } finally {
       setDeletingId(null);
     }
@@ -53,6 +67,8 @@ export default function PostsPage() {
           + New Post
         </button>
       </div>
+
+      <ToastBanner />
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
         {loading ? (
@@ -144,6 +160,15 @@ export default function PostsPage() {
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingDelete}
+        title="Delete Post"
+        message={`Delete post "${pendingDelete?.title}"? This action cannot be undone.`}
+        isLoading={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </AdminLayout>
   );
 }

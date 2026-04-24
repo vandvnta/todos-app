@@ -15,8 +15,9 @@ class TodoController extends Controller
     {
         $todos = $request->user()
             ->todos()
+            ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->latest()
-            ->get();
+            ->paginate(15);
 
         return response()->json($todos);
     }
@@ -31,14 +32,14 @@ class TodoController extends Controller
 
         $todo = $request->user()->todos()->create($data);
 
-        return response()->json($todo, 201);
+        return response()->json(['data' => $todo], 201);
     }
 
     public function show(Request $request, Todo $todo): JsonResponse
     {
         $this->authorizeOwnership($request, $todo);
 
-        return response()->json($todo);
+        return response()->json(['data' => $todo]);
     }
 
     public function update(UpdateTodoRequest $request, Todo $todo): JsonResponse
@@ -61,7 +62,7 @@ class TodoController extends Controller
 
         $todo->update($data);
 
-        return response()->json($todo->fresh());
+        return response()->json(['data' => $todo->fresh()]);
     }
 
     public function destroy(Request $request, Todo $todo): JsonResponse

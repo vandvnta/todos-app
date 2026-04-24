@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useToast } from '../../context/ToastContext';
 import type { Category } from '../../types';
 
 export default function CategoryFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [name, setName]         = useState('');
   const [error, setError]       = useState('');
@@ -16,8 +18,8 @@ export default function CategoryFormPage() {
 
   useEffect(() => {
     if (!isEdit) return;
-    adminApi.get<Category>(`/admin/categories/${id}`)
-      .then(({ data }) => setName(data.name))
+    adminApi.get<{ data: Category }>(`/admin/categories/${id}`)
+      .then(({ data }) => setName(data.data.name))
       .catch(() => navigate('/admin/categories'))
       .finally(() => setFetching(false));
   }, [id, isEdit, navigate]);
@@ -32,6 +34,7 @@ export default function CategoryFormPage() {
       } else {
         await adminApi.post('/admin/categories', { name });
       }
+      showToast(isEdit ? 'Category updated successfully.' : 'Category created successfully.');
       navigate('/admin/categories');
     } catch (err: unknown) {
       const response = (err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } })?.response;

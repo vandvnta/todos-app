@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import adminApi from '../../api/adminAxios';
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { useToast } from '../../context/ToastContext';
+import ToastBanner from '../../components/ToastBanner';
+import ConfirmModal from '../../components/ConfirmModal';
 import type { PaginatedResponse, User } from '../../types';
 
 export default function UsersPage() {
   const { admin: currentUser } = useAdminAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [users, setUsers]         = useState<User[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -15,6 +19,7 @@ export default function UsersPage() {
   const [lastPage, setLastPage]   = useState(1);
   const [total, setTotal]         = useState(0);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async (page: number) => {
     setLoading(true);
@@ -35,12 +40,17 @@ export default function UsersPage() {
     fetchUsers(1);
   }, [fetchUsers]);
 
-  async function handleDelete(user: User) {
-    if (!confirm(`Delete user "${user.name}"? This action cannot be undone.`)) return;
+  function handleDelete(user: User) {
+    setPendingDelete(user);
+  }
 
-    setDeletingId(user.id);
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeletingId(pendingDelete.id);
     try {
-      await adminApi.delete(`/admin/users/${user.id}`);
+      await adminApi.delete(`/admin/users/${pendingDelete.id}`);
+      showToast('User deleted successfully.');
+      setPendingDelete(null);
       await fetchUsers(currentPage);
     } catch (err: unknown) {
       const message =
@@ -66,6 +76,8 @@ export default function UsersPage() {
           + New User
         </button>
       </div>
+
+      <ToastBanner />
 
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
         {loading ? (
@@ -130,6 +142,15 @@ export default function UsersPage() {
           </table>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!pendingDelete}
+        title="Delete User"
+        message={`Delete user "${pendingDelete?.name}"? This action cannot be undone.`}
+        isLoading={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
 
       {/* Pagination */}
       {lastPage > 1 && (
