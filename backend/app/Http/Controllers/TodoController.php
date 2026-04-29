@@ -15,6 +15,7 @@ class TodoController extends Controller
     {
         $todos = $request->user()
             ->todos()
+            ->with('tags')
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->latest()
             ->paginate(15);
@@ -24,29 +25,34 @@ class TodoController extends Controller
 
     public function store(StoreTodoRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $data   = $request->validated();
+        $tagIds = $data['tag_ids'] ?? [];
+        unset($data['tag_ids']);
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('todos', 'public');
         }
 
         $todo = $request->user()->todos()->create($data);
+        $todo->tags()->sync($tagIds);
 
-        return response()->json(['data' => $todo], 201);
+        return response()->json(['data' => $todo->load('tags')], 201);
     }
 
     public function show(Request $request, Todo $todo): JsonResponse
     {
         $this->authorizeOwnership($request, $todo);
 
-        return response()->json(['data' => $todo]);
+        return response()->json(['data' => $todo->load('tags')]);
     }
 
     public function update(UpdateTodoRequest $request, Todo $todo): JsonResponse
     {
         $this->authorizeOwnership($request, $todo);
 
-        $data = $request->validated();
+        $data   = $request->validated();
+        $tagIds = array_key_exists('tag_ids', $data) ? ($data['tag_ids'] ?? []) : null;
+        unset($data['tag_ids']);
 
         if ($request->hasFile('image')) {
             if ($todo->image_path) {
@@ -62,7 +68,11 @@ class TodoController extends Controller
 
         $todo->update($data);
 
-        return response()->json(['data' => $todo->fresh()]);
+        if ($tagIds !== null) {
+            $todo->tags()->sync($tagIds);
+        }
+
+        return response()->json(['data' => $todo->fresh()->load('tags')]);
     }
 
     public function destroy(Request $request, Todo $todo): JsonResponse

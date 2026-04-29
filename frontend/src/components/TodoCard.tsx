@@ -28,6 +28,16 @@ export default function TodoCard({ todo, onEdit, onDelete }: Props) {
           <p className="mb-3 text-sm text-gray-500">{todo.description}</p>
         )}
 
+        {todo.tags.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1">
+            {todo.tags.map((tag) => (
+              <span key={tag.id} className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <button
             onClick={() => onEdit(todo)}

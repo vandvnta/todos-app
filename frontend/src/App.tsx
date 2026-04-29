@@ -6,6 +6,8 @@ import { AdminAuthProvider, useAdminAuth } from './context/AdminAuthContext';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import CategoryFormPage from './pages/admin/CategoryFormPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
+import CommentsPage from './pages/admin/CommentsPage';
+import TagsPage from './pages/admin/TagsPage';
 import PostFormPage from './pages/admin/PostFormPage';
 import AdminPostsPage from './pages/admin/PostsPage';
 import UserFormPage from './pages/admin/UserFormPage';
@@ -44,6 +46,8 @@ function AdminRoutes() {
       <Route path="categories"       element={<AdminRoute><CategoriesPage /></AdminRoute>} />
       <Route path="categories/create"   element={<AdminRoute><CategoryFormPage /></AdminRoute>} />
       <Route path="categories/:id/edit" element={<AdminRoute><CategoryFormPage /></AdminRoute>} />
+      <Route path="tags"             element={<AdminRoute><TagsPage /></AdminRoute>} />
+      <Route path="comments"         element={<AdminRoute><CommentsPage /></AdminRoute>} />
       <Route path="*" element={<Navigate to="/admin/users" replace />} />
     </Routes>
   );

@@ -33,6 +33,7 @@ export default function EditTodoPage() {
     } else if (data.removeImage) {
       formData.append('remove_image', '1');
     }
+    data.tagIds.forEach((id) => formData.append('tag_ids[]', String(id)));
 
     try {
       await api.post<Todo>(`/todos/${id}`, formData, {

@@ -20,6 +20,16 @@ export interface PaginatedResponse<T> {
   to: number;
 }
 
+export interface Tag {
+  id: number;
+  user_id: number;
+  name: string;
+  slug: string;
+  todos_count?: number;
+  user?: { id: number; name: string };
+  created_at: string;
+}
+
 export interface Todo {
   id: number;
   user_id: number;
@@ -27,6 +37,7 @@ export interface Todo {
   description: string | null;
   status: TodoStatus;
   image_url: string | null;
+  tags: Tag[];
   created_at: string;
   updated_at: string;
 }
@@ -49,10 +60,22 @@ export interface Post {
   updated_at: string;
 }
 
+export interface Comment {
+  id: number;
+  user_id: number;
+  post_id: number;
+  content: string;
+  user: { id: number; name: string };
+  post?: { id: number; title: string };
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TodoFormData {
   title: string;
   description: string;
   status: TodoStatus;
   image?: File | null;
   removeImage?: boolean;
+  tagIds: number[];
 }

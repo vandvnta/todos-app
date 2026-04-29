@@ -14,6 +14,7 @@ export default function CreateTodoPage() {
     formData.append('description', data.description);
     formData.append('status', data.status);
     if (data.image) formData.append('image', data.image);
+    data.tagIds.forEach((id) => formData.append('tag_ids[]', String(id)));
 
     try {
       await api.post<Todo>('/todos', formData, {

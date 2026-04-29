@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Todo, TodoFormData, TodoStatus } from '../types';
+import api from '../api/axios';
+import type { Tag, Todo, TodoFormData, TodoStatus } from '../types';
 
 interface Props {
   initial?: Todo | null;
@@ -24,22 +25,52 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
   const [error, setError]             = useState('');
   const fileInputRef                  = useRef<HTMLInputElement>(null);
 
+  const [allTags, setAllTags]         = useState<Tag[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [newTagName, setNewTagName]   = useState('');
+  const [tagLoading, setTagLoading]   = useState(false);
+
+  useEffect(() => {
+    api.get<{ data: Tag[] }>('/tags').then(({ data }) => setAllTags(data.data));
+  }, []);
+
   useEffect(() => {
     if (initial) {
       setTitle(initial.title);
       setDescription(initial.description ?? '');
       setStatus(initial.status);
       setPreview(initial.image_url ?? null);
+      setSelectedIds(initial.tags.map((t) => t.id));
     }
   }, [initial]);
+
+  function toggleTag(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  async function handleAddTag() {
+    const name = newTagName.trim();
+    if (!name) return;
+    setTagLoading(true);
+    try {
+      const { data } = await api.post<{ data: Tag }>('/tags', { name });
+      setAllTags((prev) => [...prev, data.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedIds((prev) => [...prev, data.data.id]);
+      setNewTagName('');
+    } catch {
+      // tag already exists or validation error — ignore silently
+    } finally {
+      setTagLoading(false);
+    }
+  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setImage(file);
     setImageRemoved(false);
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    }
+    if (file) setPreview(URL.createObjectURL(file));
   }
 
   function removeImage() {
@@ -58,7 +89,7 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
     setError('');
     setLoading(true);
     try {
-      await onSubmit({ title: title.trim(), description, status, image, removeImage: imageRemoved });
+      await onSubmit({ title: title.trim(), description, status, image, removeImage: imageRemoved, tagIds: selectedIds });
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -107,6 +138,53 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Tags */}
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Tags</label>
+
+        {allTags.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {allTags.map((tag) => {
+              const selected = selectedIds.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTag(tag.id)}
+                  className={`rounded-full border px-3 py-0.5 text-xs font-medium transition ${
+                    selected
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : 'border-gray-300 bg-white text-gray-600 hover:border-emerald-400 hover:text-emerald-600'
+                  }`}
+                >
+                  {tag.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
+            placeholder="New tag name…"
+            maxLength={50}
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+          />
+          <button
+            type="button"
+            onClick={handleAddTag}
+            disabled={tagLoading || !newTagName.trim()}
+            className="rounded-lg border border-emerald-500 px-3 py-1.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 disabled:opacity-40"
+          >
+            Add
+          </button>
+        </div>
       </div>
 
       {/* Image upload */}

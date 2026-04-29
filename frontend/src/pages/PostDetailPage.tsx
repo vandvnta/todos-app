@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../api/axios';
+import CommentSection from '../components/CommentSection';
 import type { Post } from '../types';
 import DOMPurify from 'dompurify';
 
@@ -76,6 +77,8 @@ export default function PostDetailPage() {
             __html: DOMPurify.sanitize(post.content)
           }}
         />
+
+        <CommentSection postId={post.id} />
       </main>
     </div>
   );
