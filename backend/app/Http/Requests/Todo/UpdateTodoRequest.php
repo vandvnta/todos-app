@@ -21,6 +21,7 @@ class UpdateTodoRequest extends FormRequest
             'status'       => ['sometimes', Rule::enum(TodoStatus::class)],
             'image'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_image' => ['nullable', 'boolean'],
+            'project_id'   => ['nullable', 'integer', Rule::exists('projects', 'id')->where('user_id', $this->user()->id)],
             'tag_ids'      => ['nullable', 'array'],
             'tag_ids.*'    => ['integer', Rule::exists('tags', 'id')->where('user_id', $this->user()->id)],
         ];

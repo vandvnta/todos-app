@@ -28,6 +28,13 @@ export default function TodoCard({ todo, onEdit, onDelete }: Props) {
           <p className="mb-3 text-sm text-gray-500">{todo.description}</p>
         )}
 
+        {todo.project && (
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: todo.project.color }} />
+            <span className="text-xs text-gray-500">{todo.project.name}</span>
+          </div>
+        )}
+
         {todo.tags.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1">
             {todo.tags.map((tag) => (

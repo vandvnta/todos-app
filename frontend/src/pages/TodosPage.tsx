@@ -81,6 +81,12 @@ export default function TodosPage() {
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">{user?.name}</span>
             <Link
+              to="/projects"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600"
+            >
+              Projects
+            </Link>
+            <Link
               to="/posts"
               className="text-sm font-medium text-gray-600 hover:text-blue-600"
             >

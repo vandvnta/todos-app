@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Todo\StoreTodoRequest;
 use App\Http\Requests\Todo\UpdateTodoRequest;
+use App\Models\ActivityLog;
 use App\Models\Todo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,9 @@ class TodoController extends Controller
     {
         $todos = $request->user()
             ->todos()
-            ->with('tags')
-            ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
+            ->with(['tags', 'project:id,name,color'])
+            ->when($request->query('status'),     fn ($q, $v) => $q->where('status', $v))
+            ->when($request->query('project_id'), fn ($q, $v) => $q->where('project_id', $v))
             ->latest()
             ->paginate(15);
 
@@ -36,14 +38,22 @@ class TodoController extends Controller
         $todo = $request->user()->todos()->create($data);
         $todo->tags()->sync($tagIds);
 
-        return response()->json(['data' => $todo->load('tags')], 201);
+        ActivityLog::create([
+            'user_id'      => $request->user()->id,
+            'action'       => 'todo.created',
+            'subject_type' => 'todo',
+            'subject_id'   => $todo->id,
+            'description'  => "Created todo \"{$todo->title}\"",
+        ]);
+
+        return response()->json(['data' => $todo->load(['tags', 'project:id,name,color'])], 201);
     }
 
     public function show(Request $request, Todo $todo): JsonResponse
     {
         $this->authorizeOwnership($request, $todo);
 
-        return response()->json(['data' => $todo->load('tags')]);
+        return response()->json(['data' => $todo->load(['tags', 'project:id,name,color', 'attachments'])]);
     }
 
     public function update(UpdateTodoRequest $request, Todo $todo): JsonResponse
@@ -72,12 +82,28 @@ class TodoController extends Controller
             $todo->tags()->sync($tagIds);
         }
 
-        return response()->json(['data' => $todo->fresh()->load('tags')]);
+        ActivityLog::create([
+            'user_id'      => $request->user()->id,
+            'action'       => 'todo.updated',
+            'subject_type' => 'todo',
+            'subject_id'   => $todo->id,
+            'description'  => "Updated todo \"{$todo->title}\"",
+        ]);
+
+        return response()->json(['data' => $todo->fresh()->load(['tags', 'project:id,name,color'])]);
     }
 
     public function destroy(Request $request, Todo $todo): JsonResponse
     {
         $this->authorizeOwnership($request, $todo);
+
+        ActivityLog::create([
+            'user_id'      => $request->user()->id,
+            'action'       => 'todo.deleted',
+            'subject_type' => 'todo',
+            'subject_id'   => $todo->id,
+            'description'  => "Deleted todo \"{$todo->title}\"",
+        ]);
 
         if ($todo->image_path) {
             Storage::disk('public')->delete($todo->image_path);

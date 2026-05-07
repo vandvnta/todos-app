@@ -8,9 +8,11 @@ import DOMPurify from 'dompurify';
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const [post, setPost]       = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [post, setPost]           = useState<Post | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [notFound, setNotFound]   = useState(false);
+  const [reacting, setReacting]   = useState(false);
+  const [bookmarking, setBookmarking] = useState(false);
 
   useEffect(() => {
     api.get<Post>(`/posts/${id}`)
@@ -18,6 +20,28 @@ export default function PostDetailPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function toggleReaction() {
+    if (!post || reacting) return;
+    setReacting(true);
+    try {
+      const { data } = await api.post<{ reacted: boolean; reactions_count: number }>(`/posts/${post.id}/reactions`);
+      setPost(prev => prev ? { ...prev, is_reacted: data.reacted, reactions_count: data.reactions_count } : prev);
+    } finally {
+      setReacting(false);
+    }
+  }
+
+  async function toggleBookmark() {
+    if (!post || bookmarking) return;
+    setBookmarking(true);
+    try {
+      const { data } = await api.post<{ bookmarked: boolean }>(`/posts/${post.id}/bookmarks`);
+      setPost(prev => prev ? { ...prev, is_bookmarked: data.bookmarked } : prev);
+    } finally {
+      setBookmarking(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -69,7 +93,39 @@ export default function PostDetailPage() {
           </span>
         </div>
 
-        <h1 className="mb-6 text-3xl font-bold text-gray-900">{post.title}</h1>
+        <h1 className="mb-4 text-3xl font-bold text-gray-900">{post.title}</h1>
+
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={toggleReaction}
+            disabled={reacting}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+              post.is_reacted
+                ? 'border-rose-300 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                : 'border-gray-300 bg-white text-gray-600 hover:border-rose-300 hover:text-rose-500'
+            }`}
+          >
+            <svg className="h-4 w-4" fill={post.is_reacted ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            {post.reactions_count ?? 0}
+          </button>
+
+          <button
+            onClick={toggleBookmark}
+            disabled={bookmarking}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+              post.is_bookmarked
+                ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100'
+                : 'border-gray-300 bg-white text-gray-600 hover:border-amber-300 hover:text-amber-500'
+            }`}
+          >
+            <svg className="h-4 w-4" fill={post.is_bookmarked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            {post.is_bookmarked ? 'Saved' : 'Save'}
+          </button>
+        </div>
 
         <div
           className="prose prose-gray max-w-none"

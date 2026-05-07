@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
-import type { Tag, Todo, TodoFormData, TodoStatus } from '../types';
+import type { Project, Tag, Todo, TodoFormData, TodoStatus } from '../types';
 
 interface Props {
   initial?: Todo | null;
@@ -30,8 +30,12 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
   const [newTagName, setNewTagName]   = useState('');
   const [tagLoading, setTagLoading]   = useState(false);
 
+  const [projects, setProjects]       = useState<Project[]>([]);
+  const [projectId, setProjectId]     = useState<number | null>(null);
+
   useEffect(() => {
     api.get<{ data: Tag[] }>('/tags').then(({ data }) => setAllTags(data.data));
+    api.get<{ data: Project[] }>('/projects').then(({ data }) => setProjects(data.data));
   }, []);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
       setStatus(initial.status);
       setPreview(initial.image_url ?? null);
       setSelectedIds(initial.tags.map((t) => t.id));
+      setProjectId(initial.project?.id ?? null);
     }
   }, [initial]);
 
@@ -89,7 +94,7 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
     setError('');
     setLoading(true);
     try {
-      await onSubmit({ title: title.trim(), description, status, image, removeImage: imageRemoved, tagIds: selectedIds });
+      await onSubmit({ title: title.trim(), description, status, image, removeImage: imageRemoved, tagIds: selectedIds, projectId });
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -136,6 +141,21 @@ export default function TodoForm({ initial, onSubmit, onCancel }: Props) {
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Project */}
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Project</label>
+        <select
+          value={projectId ?? ''}
+          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : null)}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">No project</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
       </div>

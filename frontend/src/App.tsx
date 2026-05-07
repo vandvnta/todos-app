@@ -8,15 +8,21 @@ import CategoryFormPage from './pages/admin/CategoryFormPage';
 import CategoriesPage from './pages/admin/CategoriesPage';
 import CommentsPage from './pages/admin/CommentsPage';
 import TagsPage from './pages/admin/TagsPage';
+import AdminProjectsPage from './pages/admin/ProjectsPage';
+import ActivityLogsPage from './pages/admin/ActivityLogsPage';
 import PostFormPage from './pages/admin/PostFormPage';
 import AdminPostsPage from './pages/admin/PostsPage';
 import UserFormPage from './pages/admin/UserFormPage';
 import UsersPage from './pages/admin/UsersPage';
+import ActivityPage from './pages/ActivityPage';
+import BookmarksPage from './pages/BookmarksPage';
 import CreateTodoPage from './pages/CreateTodoPage';
 import EditTodoPage from './pages/EditTodoPage';
 import LoginPage from './pages/LoginPage';
+import NotificationsPage from './pages/NotificationsPage';
 import PostDetailPage from './pages/PostDetailPage';
 import PostsPage from './pages/PostsPage';
+import ProjectsPage from './pages/ProjectsPage';
 import RegisterPage from './pages/RegisterPage';
 import TodosPage from './pages/TodosPage';
 
@@ -48,6 +54,8 @@ function AdminRoutes() {
       <Route path="categories/:id/edit" element={<AdminRoute><CategoryFormPage /></AdminRoute>} />
       <Route path="tags"             element={<AdminRoute><TagsPage /></AdminRoute>} />
       <Route path="comments"         element={<AdminRoute><CommentsPage /></AdminRoute>} />
+      <Route path="projects"         element={<AdminRoute><AdminProjectsPage /></AdminRoute>} />
+      <Route path="activity-logs"    element={<AdminRoute><ActivityLogsPage /></AdminRoute>} />
       <Route path="*" element={<Navigate to="/admin/users" replace />} />
     </Routes>
   );
@@ -73,8 +81,12 @@ export default function App() {
       <Route path="/todos/new"      element={<ProtectedRoute><CreateTodoPage /></ProtectedRoute>} />
       <Route path="/todos/:id/edit" element={<ProtectedRoute><EditTodoPage /></ProtectedRoute>} />
 
-      <Route path="/posts"    element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
-      <Route path="/posts/:id" element={<ProtectedRoute><PostDetailPage /></ProtectedRoute>} />
+      <Route path="/posts"         element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
+      <Route path="/posts/:id"     element={<ProtectedRoute><PostDetailPage /></ProtectedRoute>} />
+      <Route path="/projects"      element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/bookmarks"     element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="/activity"      element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
 
       {/* Admin section — isolated auth context */}
       <Route path="/admin/*" element={<AdminSection />} />
